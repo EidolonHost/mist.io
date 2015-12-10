@@ -14,49 +14,39 @@ define('app/controllers/images',
 
         return BaseArrayController.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
+
+            baseModel: ImageModel,
+            passOnProperties: ['cloud'],
 
 
-            model: ImageModel,
-            passOnProperties: ['backend'],
-
-
-            //
             //
             //  Computed Properties
             //
-            //
-
 
             hasStarred: function () {
-                return !!this.findBy('star', true);
-            }.property('@each.star'),
+                return !!this.model.findBy('star', true);
+            }.property('[].star'),
 
 
-            //
             //
             //  Methods
             //
-            //
-
 
             searchImages: function (filter, callback) {
                 var that = this;
-                Mist.ajax.POST('/backends/' + this.backend.id + '/images', {
+                Mist.ajax.POST('/clouds/' + this.cloud.id + '/images', {
                     'search_term': filter
                 }).error(function () {
                     Mist.notificationController.notify(
-                        'Failed to search images on ' + that.backend.title);
+                        'Failed to search images on ' + that.cloud.title);
                 }).complete(function (success, images) {
                     var imagesToReturn = [];
                     if (success) {
                         images.forEach(function (image) {
-                            image.backend = that.backend;
+                            image.cloud = that.cloud;
                             imagesToReturn.push(ImageModel.create(image));
                         });
                     }
@@ -64,10 +54,9 @@ define('app/controllers/images',
                 });
             },
 
-
             toggleImageStar: function (image, callback) {
                 var that = this;
-                Mist.ajax.POST('/backends/' + this.backend.id + '/images/' + image.id, {
+                Mist.ajax.POST('/clouds/' + this.cloud.id + '/images/' + image.id, {
                 }).success(function (star) {
                     if (!that.objectExists(image.id))
                         that._addObject(image);
@@ -78,7 +67,6 @@ define('app/controllers/images',
                     if (callback) callback(success, star);
                 });
             },
-
 
             getImageOS: function (imageId) {
                 // TODO (gtsop): Move this into a computed
@@ -105,11 +93,8 @@ define('app/controllers/images',
 
 
             //
-            //
             //  Pseudo-Private Methods
             //
-            //
-
 
             _toggleImageStar: function (image, star) {
                 Ember.run(this, function () {
@@ -118,6 +103,12 @@ define('app/controllers/images',
                         object: image,
                         star: star
                     });
+
+                    // In case we "star" an image we trigger this event to refresh
+                    // images list and make this image appear on top with other starred images
+                    if (star) {
+                        Mist.cloudsController.trigger('onImagesChange');
+                    }
                 });
             },
         });

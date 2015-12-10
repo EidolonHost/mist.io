@@ -10,45 +10,34 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
 
         return Ember.Object.extend(Ember.Evented, {
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             checkingMonitoring: null,
 
 
             //
-            //
             //  Initialization
             //
-            //
-
 
             load: function(callback) {
                 if (!Mist.authenticated) {
-                    Mist.backendsController.set('checkedMonitoring', true);
+                    Mist.cloudsController.set('checkedMonitoring', true);
                     return;
                 }
             }.on('init'),
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             enableMonitoring: function(machine, callback, noSsh) {
-
                 var that = this;
                 machine.set('enablingMonitoring', true);
 
-                var url = '/backends/' + machine.backend.id +
+                var url = '/clouds/' + machine.cloud.id +
                     '/machines/' + machine.id + '/monitoring';
 
                 Mist.ajax.POST(url, {
@@ -61,31 +50,28 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
                     Mist.set('authenticated', true);
                     that._enableMonitoring(machine);
                 }).error(function(message, statusCode) {
-
                     if (statusCode == 402)
                         Mist.notificationController.timeNotify(message, 5000);
                     else
                         Mist.notificationController.notify(
                             'Error when changing monitoring to ' + machine.name);
-
                 }).complete(function(success, data) {
                     machine.set('enablingMonitoring', false);
                     if (callback) callback(success, data);
                 });
             },
 
-
-            disableMonitoring: function(machine, callback) {
-
+            disableMonitoring: function(machine, callback, noSsh) {
                 var that = this;
                 machine.set('disablingMonitoring', true);
                 machine.set('hasMonitoring', false);
 
-                var url = '/backends/' + machine.backend.id +
+                var url = '/clouds/' + machine.cloud.id +
                     '/machines/' + machine.id + '/monitoring';
 
                 Mist.ajax.POST(url, {
                     'action': 'disable',
+                    'no_ssh': noSsh || false,
                     'name': machine.name || machine.id,
                     'public_ips': machine.public_ips || [],
                     'dns_name': machine.extra.dns_name || 'n/a',
@@ -107,14 +93,12 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
                 });
             },
 
-
             changeMonitoring: function(machine, callback) {
                 if (machine.hasMonitoring)
                     this.disableMonitoring(machine, callback);
                 else
                     this.enableMonitoring(machine, callback);
             },
-
 
             _enableMonitoring: function (machine) {
                 Ember.run(this, function () {
@@ -123,7 +107,6 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
                     this.trigger('onMonitoringEnable', machine);
                 });
             },
-
 
             _disableMonitoring: function (machine) {
                 Ember.run(this, function () {
@@ -136,26 +119,22 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
                 });
             },
 
-
             _updateMonitoringData: function(data) {
-
                 Mist.set('current_plan', data.current_plan);
                 Mist.set('monitored_machines', data.machines);
                 Mist.set('monitored_machines_', data.monitored_machines);
 
                 Mist.metricsController.setCustomMetrics(data.custom_metrics);
                 Mist.metricsController.setBuiltInMetrics(data.builtin_metrics);
-                Mist.rulesController.setContent(data.rules);
+                Mist.rulesController.setModel(data.rules);
 
-                Mist.backendsController.content.forEach(function (backend) {
-                   backend.machines._updateMonitoredMachines();
+                Mist.cloudsController.model.forEach(function (cloud) {
+                   cloud.machines._updateMonitoredMachines();
                 });
             },
 
-
             getMonitoringCommand: function (machine, callback) {
-
-                var url = '/backends/' + machine.backend.id +
+                var url = '/clouds/' + machine.cloud.id +
                     '/machines/' + machine.id + '/monitoring';
 
                 var that = this;
@@ -180,21 +159,14 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
 
 
             //
-            //
             //  Cookies
             //
-            //
-
 
             cookies: {
-
-
                 timeWindow: null,
                 collapsedGraphs: null,
 
-
                 load: function () {
-
                     this.disableOldCookie();
 
                     if (document.cookie.indexOf('mistio-monitoring') == -1)
@@ -217,9 +189,7 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
                     this.collapsedGraphs = info.collapsedGraphs || [];
                 },
 
-
                 save: function (metrics) {
-
                     var cookieExpire = new Date();
                     cookieExpire.setFullYear(cookieExpire.getFullYear() + 2);
 
@@ -232,7 +202,6 @@ define('app/controllers/monitoring', ['app/models/graph', 'app/models/metric', '
 
                     document.cookie = cookie;
                 },
-
 
                 disableOldCookie: function () {
                     if (document.cookie.indexOf('collapsedGraphs') > -1)

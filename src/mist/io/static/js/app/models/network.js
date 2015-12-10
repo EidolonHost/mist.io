@@ -14,39 +14,38 @@ define('app/models/network', [
 
         return BaseModel.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             status: null,
             subnets: null,
-            backend: null,
-            ipAddresses: null,
+            cloud: null,
+            //ipAddresses: null,
+
+            isPublic: Ember.computed('router_external', function() {
+                return this.get('router_external') == true;
+            }),
+
+            isPrivate: Ember.computed('router_external', function() {
+                return this.get('router_external') == false;
+            }),
 
 
-            //
             //
             //  Methods
             //
-            //
-
 
             load: function () {
                 var subnets = this.get('subnets')
                 this.setProperties({
-                    subnets: SubnetsController.create({ network: this }),
-                    ipAddresses: IPAddressesController.create({ network: this })
+                    subnets: SubnetsController.create({ network: this, model: [] }),
+                    //ipAddresses: IPAddressesController.create({ network: this, model: [] })
                 });
                 this._updateSubnets(subnets);
             }.on('init'),
 
-
             update: function (data) {
-
                 // Do not modify original data because it introduces
                 // debuging problems
                 var newData = Ember.Object.create(data);
@@ -59,7 +58,7 @@ define('app/models/network', [
             },
 
             _updateSubnets: function (subnets) {
-                this.get('subnets').setContent(subnets);
+                this.get('subnets').setModel(subnets);
             },
         });
     }

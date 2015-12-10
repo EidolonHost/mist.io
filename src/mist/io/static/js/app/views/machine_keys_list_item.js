@@ -4,14 +4,17 @@ define('app/views/machine_keys_list_item', ['app/views/list_item'],
      *
      *  @returns Class
      */
-    function(ListItemView) {
-        return App.MachineKeysListItemView = ListItemView.extend({
+    function(ListItemComponent) {
+        return App.MachineKeysListItemComponent = ListItemComponent.extend({
 
+            layoutName: 'machine_keys_list_item',
             tagName: 'span',
             keyIcon: null,
 
             load: function() {
-                this.keyObserver();
+                Ember.run.next(this, function() {
+                    this.keyObserver();
+                })
             }.on('didInsertElement'),
 
             keyObserver: function() {
@@ -24,7 +27,7 @@ define('app/views/machine_keys_list_item', ['app/views/list_item'],
                 var that = this;
                 this.key.machines.some(function(machine) {
                     if (machine[1] == machineToFind.id &&
-                        machine[0] == machineToFind.backend.id) {
+                        machine[0] == machineToFind.cloud.id) {
                             if (that.key.probing) {
                                 that.set('keyIcon', 'probing');
                             } else if (machine[2] > 0) {
@@ -38,7 +41,6 @@ define('app/views/machine_keys_list_item', ['app/views/list_item'],
             }.observes('this.key.probing', 'this.key.machines'),
 
             actions: {
-
                 associatedKeyClicked: function (key) {
                     this.get('parentView').set('selectedKey', key);
                     $('#key-actions-popup').popup('open');

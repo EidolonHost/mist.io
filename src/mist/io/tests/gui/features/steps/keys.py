@@ -1,5 +1,6 @@
 from behave import *
 from time import time, sleep
+from mist.io.tests.gui.features.steps.general import safe_get_element_text
 
 
 @when(u'I fill "{text}" as key name')
@@ -26,26 +27,6 @@ def fill_key_name(context, text):
         textfield.send_keys(letter)
 
 
-@then(u'Keys counter should be greater than {counter_number} within {seconds} seconds')
-def keys_counter_loaded(context, counter_number, seconds):
-    elements = context.browser.find_elements_by_tag_name("li")
-    for element in elements:
-        if "Keys" in element.text:
-            break
-
-    end_time = time() + int(seconds)
-    while time() < end_time:
-        counter_span = element.find_element_by_tag_name("span")
-        counter = int(counter_span.text)
-
-        if counter > int(counter_number):
-            return
-        else:
-            sleep(2)
-
-    assert False, u'The counter did not say that more than %s keys were loaded' % counter_number
-
-
 @then(u'"{text}" key should be added within {seconds} seconds')
 def key_added(context, text, seconds):
     if "randomly_created" in text:
@@ -55,7 +36,7 @@ def key_added(context, text, seconds):
     while time() < end_time:
         keys = context.browser.find_elements_by_css_selector(".ui-listview li")
         for key in keys:
-            if text in key.text:
+            if text in safe_get_element_text(key):
                 return
         sleep(2)
 
@@ -69,7 +50,7 @@ def key_deleted(context, text):
 
     keys = context.browser.find_elements_by_css_selector(".ui-listview li")
     for key in keys:
-        if text in key.text:
+        if text in safe_get_element_text(key):
             assert False, u'%s Key is not deleted'
 
     return

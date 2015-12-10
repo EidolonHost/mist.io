@@ -21,7 +21,7 @@ define('app/controllers/cookies', ['ember'],
         //
         //      smm: {
         //
-        //          machine_id_backend_id: {
+        //          machine_id_cloud_id: {
         //
         //               timeWindow: 1000,
         //               graphs: {
@@ -36,7 +36,7 @@ define('app/controllers/cookies', ['ember'],
         //               },
         //           },
         //
-        //           machined_id_backend_id: {
+        //           machined_id_cloud_id: {
         //              ...
         //           },
         //           ...
@@ -158,7 +158,7 @@ define('app/controllers/cookies', ['ember'],
                 var machine_uuid = uuidFromMachine(machine);
                 this.cookie.smm[machine_uuid].graphs[graph.id] = {
                     index: graph.index || 0,
-                    hidden: graph.view ? grpah.view.isHidden : false,
+                    hidden: graph.view ? graph.view.isHidden : false,
                 };
                 this._save();
                 return this.cookie.smm[machine_uuid].graphs[graph.id];
@@ -184,7 +184,7 @@ define('app/controllers/cookies', ['ember'],
 
 
         function uuidFromMachine(machine) {
-            return machine.id + '_' + machine.backend.id;
+            return machine.id + '_' + machine.cloud.id;
         }
 
         function deleteOldCookies () {

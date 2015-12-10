@@ -1,7 +1,5 @@
-<span class="small-list-item">
-
-    <p>{{this}}</p>
-
-    <button class="ui-btn ui-btn-a ui-icon-delete ui-btn-icon-notext ui-shadow ui-corner-all" {{action "deleteClicked" target="view"}}></button>
-
-</span>
+<div class="field-wrapper tag-item">
+    {{input value=tag.key placeholder="key" class="tag-key"}}
+    {{input value=tag.value placeholder="value" class="tag-value"}}
+    <a class="ui-btn icon-xx ui-btn-icon-notext" {{action "deleteClicked" target=view}}></a>
+</div>

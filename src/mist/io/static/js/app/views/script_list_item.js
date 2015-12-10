@@ -4,14 +4,16 @@ define('app/views/script_list_item', ['app/views/list_item'],
     //
     //  @returns Class
     //
-    function (ListItemView) {
+    function (ListItemComponent) {
 
         'use strict';
 
-        return App.ScriptListItemView = ListItemView.extend({
+        return App.ScriptListItemComponent = ListItemComponent.extend({
+
+            layoutName: 'script_list_item',
 
             updateCheckbox: function () {
-                var element = this.$('input.ember-checkbox');
+                var element = $('#' + this.elementId + ' input.ember-checkbox');
                 Ember.run.next(this, function () {
                     if (element.checkboxradio) {
                         element.checkboxradio()

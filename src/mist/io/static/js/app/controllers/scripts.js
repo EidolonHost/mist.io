@@ -10,10 +10,61 @@ define('app/controllers/scripts', ['app/controllers/base_array', 'app/models/scr
 
         return BaseArrayController.extend({
 
-            model: ScriptModel,
+            baseModel: ScriptModel,
+            searchTerm: null,
+            sortByTerm: 'name',
+
+            //
+            //  Computed Properties
+            //
+
+            sortByName: Ember.computed('sortByTerm', function () {
+                return this.get('sortByTerm') == 'name';
+            }),
+
+            sortByType: Ember.computed('sortByTerm', function () {
+                return this.get('sortByTerm') == 'type';
+            }),
+
+            filteredScripts: Ember.computed('model', 'searchTerm', function() {
+                var filteredScripts = [];
+
+                if (this.searchTerm) {
+                    var that = this;
+                    this.model.forEach(function(script) {
+                        var regex = new RegExp(that.searchTerm, 'i');
+
+                        if (regex.test(script.name)) {
+                            filteredScripts.push(script);
+                        } else {
+                            if (script.selected) {
+                                script.set('selected', false);
+                            }
+                        }
+                    });
+                } else {
+                    filteredScripts = this.model;
+                }
+
+                return filteredScripts;
+            }),
+
+            sortedScripts: Ember.computed('filteredScripts', 'filteredScripts.@each.name', 'filteredScripts.@each.type', 'sortByTerm', function() {
+                if(this.get('filteredScripts'))
+                {
+                    if (this.get('sortByName'))
+                    {
+                        return this.get('filteredScripts').sortBy('name');
+                    }
+
+                    if (this.get('sortByType'))
+                    {
+                        return this.get('filteredScripts').sortBy('type');
+                    }
+                }
+            }),
 
             addScript: function (args) {
-
                 var that = this;
                 that.set('addingScript', true);
                 Mist.ajax.POST('/scripts', {
@@ -53,9 +104,10 @@ define('app/controllers/scripts', ['app/controllers/base_array', 'app/models/scr
                 var that = this;
                 that.set('renamingScript', true);
                 Mist.ajax.PUT('/scripts/' + args.script.id, {
-                    new_name: args.newName
+                    new_name: args.newName,
+                    new_description: args.newDescription
                 }).success(function () {
-                    that._renameScript(args.script, args.newName);
+                    that._renameScript(args.script, args.newName, args.newDescription);
                 }).error(function (message) {
                     Mist.notificationController.notify(message);
                 }).complete(function (success) {
@@ -70,7 +122,7 @@ define('app/controllers/scripts', ['app/controllers/base_array', 'app/models/scr
                 that.set('runningScript', true);
                 Mist.ajax.POST('/scripts/' + args.script.script.id, {
                     'machine_id': args.script.machine.id,
-                    'backend_id': args.script.machine.backend.id,
+                    'cloud_id': args.script.machine.cloud.id,
                     'params': args.script.parameters
                 }).error(function (message) {
                     Mist.notificationController.notify(message);
@@ -81,6 +133,9 @@ define('app/controllers/scripts', ['app/controllers/base_array', 'app/models/scr
                 });
             },
 
+            getScript: function(scriptId) {
+                return this.model.findBy('id', scriptId);
+            },
 
             getRequestedScript: function() {
                 if (this.scriptRequest) {
@@ -88,10 +143,15 @@ define('app/controllers/scripts', ['app/controllers/base_array', 'app/models/scr
                 }
             },
 
+            clearSearch: function() {
+                this.set('searchTerm', null);
+            },
 
-            _renameScript: function (script, name) {
+            _renameScript: function (script, name, description) {
                 Ember.run(this, function () {
                     script.set('name', name);
+                    if (description)
+                        script.set('description', description);
                     this.trigger('onRename', {
                         script: script
                     });

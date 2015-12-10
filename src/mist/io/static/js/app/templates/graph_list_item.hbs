@@ -1,5 +1,4 @@
-<div class="graph" {{bind-attr id="view.graph.id"}}>
-
+<div class="graph {{if graph.isHidden 'hidden'}}" draggable="true">
     <!--
         Graph Head
     -->
@@ -7,82 +6,52 @@
     <div class="header">
 
         <div class="title">
-            {{view.graph.title}}
-            <div class="graphValue">-&nbsp;</div>{{#if view.graph.unit}}{{view.graph.unit}}{{/if}}
+            {{graph.title}}
         </div>
 
-        {{#if view.graph.pendingCreation}}
+
+        {{#if graph.pendingCreation}}
 
             <div class="ajax-loader"></div>
-
         {{else}}
 
-            {{#if view.graph.pendingRemoval}}
+            {{#if graph.pendingRemoval}}
                 <div class="ajax-loader"></div>
             {{/if}}
 
-            <div class="ajax-loader fetching-stats-loader"></div>
-
-            <!--
-                Remove button
-            -->
-
-            {{#if Mist.graphsController.config.canModify}}
-                {{#unless view.graph.isBuiltIn}}
-                    <a class="ui-btn ui-shadow ui-corner-all ui-icon-delete ui-btn-icon-notext"
-                        {{action "removeClicked" view.graph target="view.actionProxy"}}>x
-                    </a>
-                {{/unless}}
+            {{#if Mist.graphsController.fetchingStats}}
+                <div class="ajax-loader fetching-stats-loader"></div>
             {{/if}}
+        {{/if}}
+        <!--
+            Remove button
+        -->
 
-            <!--
-                Minimize button
-            -->
-
-            {{#if Mist.graphsController.config.canMinimize}}
-                <a class="ui-btn ui-btn-c ui-btn-icon-notext ui-corner-all ui-icon-arrow-d"
-                    {{action "collapseClicked" view.graph target="view.actionProxy"}}>-
+        {{#if Mist.graphsController.config.canModify}}
+            {{#unless graph.isBuiltIn}}
+                <a class="ui-btn icon-xx"
+                    {{action "removeClicked" graph target=view.actionProxy}}>
                 </a>
-            {{/if}}
+            {{/unless}}
+        {{/if}}
 
+        <!--
+            Minimize button
+        -->
+
+        {{#if Mist.graphsController.config.canMinimize}}
+            <a class="ui-btn icon-down"
+                {{action "collapseClicked" graph target=view.actionProxy}}>
+            </a>
         {{/if}}
     </div>
 
     <!--
         Graph Body
     -->
-
-    <svg>
-        <g class="grid-x"></g>
-        <g class="grid-y"></g>
-        {{#each view.graph.datasources}}
-            <g {{bind-attr class="this.id"}}>
-                <path></path>
-            </g>
-        {{/each}}
-
-        <!--  Visible only when on single line graphs -->
-        <g class="valueArea">
-            <path></path>
-        </g>
-
-        <g class="x-axis"></g>
-        <rect class="hideAnimeLine"></rect>
-        <line class="axisLine x"></line>
-        <line class="axisLine y"></line>
-        <g class="y-axis"></g>
-    </svg>
-
-    <!--
-        Graph Secondary Legend Header
-    -->
-
-    {{#if Mist.graphsController.config.showGraphLegend}}
-        <div class="legend">
-            {{#each view.graph.datasources}}
-                <div {{bind-attr class="this.id :lineLegend"}}></div>
-                {{this.machine.name}}
-            {{/each}}
+    {{#each view.graph.batches as |batch|}}
+        <div class="graph-body" id={{batch.id}}>
         </div>
-    {{/if}}
+    {{/each}}
+
 </div>

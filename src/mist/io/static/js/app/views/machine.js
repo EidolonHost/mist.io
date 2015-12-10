@@ -10,70 +10,58 @@ define('app/views/machine', ['app/views/page'],
 
         return App.MachineView = PageView.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             machine: null,
 
-
-            //
             //
             //  Initialization
             //
-            //
 
             load: function() {
-
-                Mist.backendsController.off('onMachineListChange', this, 'load');
-                Mist.backendsController.on('onMachineListChange', this, 'load');
-
-                Ember.run(this, function() {
-                    this.updateCurrentMachine();
-                    if (this.machine.id)
-                        this.updateUptime();
+                Mist.cloudsController.off('onMachineListChange', this, 'load');
+                Mist.cloudsController.on('onMachineListChange', this, 'load');
+                var that = this;
+                Ember.run.next(function() {
+                    that.updateCurrentMachine();
                 });
 
             }.on('didInsertElement'),
 
-
             unload: function() {
-
                 // Remove event listeners
-                Mist.backendsController.off('onMachineListChange', this, 'load');
-
+                Mist.cloudsController.off('onMachineListChange', this, 'load');
             }.on('willDestroyElement'),
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             updateCurrentMachine: function() {
-                Ember.run(this, function() {
-                    var machine = Mist.backendsController.getRequestedMachine();
+                var that = this;
+                Ember.run.next(function() {
+                    var machine = Mist.cloudsController.getRequestedMachine();
                     if (machine)
-                        this.get('controller').set('model', machine);
+                        that.get('controller').set('model', machine);
+                    if (that.isDestroyed)
+                        return;
 
-                    this.set('machine', this.get('controller').get('model'));
-                    if (this.machine.id)
-                        this.machine.set('keysCount',
-                            Mist.keysController.getMachineKeysCount(this.machine)
+                    that.set('machine', that.get('controller').get('model'));
+                    if (that.machine.id) {
+                        that.machine.set('keysCount',
+                            Mist.keysController.getMachineKeysCount(that.machine)
                         );
+                        that.updateUptime();
+                    }
                 });
             },
 
-
             updateMonitoringCollapsible: function() {
                 Ember.run.next(this, function() {
-                    if (Mist.backendsController.checkedMonitoring && this.machine.id) {
+                    if (Mist.cloudsController.checkedMonitoring && this.machine.id) {
                         $('#monitoring-collapsible').show();
                     } else {
                         $('#monitoring-collapsible').hide();
@@ -81,10 +69,8 @@ define('app/views/machine', ['app/views/page'],
                 });
             },
 
-
             updateUptime: function() {
                 if ($('#single-machine-page').length) {
-
                     // Rescedule updateUptime
                     Ember.run.later(this, function() {
                         this.updateUptime();
@@ -99,7 +85,6 @@ define('app/views/machine', ['app/views/page'],
                 }
             },
 
-
             renderMetadata: function () {
                 Ember.run.next(function() {
                     if ($('#single-machine-metadata').collapsible)
@@ -109,43 +94,33 @@ define('app/views/machine', ['app/views/page'],
 
 
             //
-            //
             //  Actions
             //
-            //
-
 
             actions: {
-
                 manageKeysClicked: function() {
                     Mist.machineKeysController.open(this.machine);
                 },
-
 
                 addKeyClicked: function() {
                     Mist.machineKeysController.openKeyList(this.machine);
                 },
 
-
                 tagsClicked: function () {
                     Mist.machineTagsController.open(this.machine);
                 },
-
 
                 powerClicked: function () {
                     Mist.machinePowerController.open(this.machine);
                 },
 
-
                 shellClicked: function () {
                     Mist.machineShellController.open(this.machine);
                 },
 
-
                 deleteMetric: function (metric) {
                     Mist.metricsController.deleteMetric(metric);
                 },
-
 
                 probeClicked: function() {
                     this.machine.probe(null, function(success) {
@@ -157,42 +132,33 @@ define('app/views/machine', ['app/views/page'],
 
 
             //
-            //
             //  Computed Properties
             //
-            //
-
-
-            isRunning: function () {
-                return this.machine ? this.machine.state == 'running' : false;
-            }.property('machine.state'),
-
 
             providerIconClass: function() {
-                if (!this.machine || !this.machine.backend || !this.machine.backend.provider)
+                if (!this.machine || !this.machine.cloud || !this.machine.cloud.provider)
                     return '';
-                return 'provider-' + this.machine.backend.getSimpleProvider();
-            }.property('machine.backend.provider'),
-
+                return 'provider-' + this.machine.cloud.getSimpleProvider();
+            }.property('machine.cloud.provider'),
 
             imageIconClass: function () {
-
                 if (!this.machine || !this.machine.extra ||
-                    !this.machine.backend || !this.machine.backend.provider)
+                    !this.machine.cloud || !this.machine.cloud.provider)
                     return 'image-generic';
 
                 var imageId = this.machine.extra.image_id ||
                     this.machine.extra.imageId ||
                     this.machine.extra.image ||
                     this.machine.extra.os_type ||
+                    this.machine.extra.DISTRIBUTIONVENDOR
                     '';
+
+                if (!imageId) return 'image-generic';
 
                 // Use .toString() because digital ocean returns
                 // an number instead of a string which breaks the search
-                return 'image-' + this.machine.backend.images.getImageOS(imageId.toString());
-
-            }.property('machine.extra.@each'),
-
+                return 'image-' + this.machine.cloud.images.getImageOS(imageId.toString());
+            }.property('machine.extra'),
 
             upFor: function() {
                 var ret = '';
@@ -218,7 +184,6 @@ define('app/views/machine', ['app/views/page'],
                 return ret;
             }.property('machine.uptime'),
 
-
             lastProbe: function(){
                 var ret = 'never';
                 if (this.machine && this.machine.uptimeChecked > 0) {
@@ -234,7 +199,6 @@ define('app/views/machine', ['app/views/page'],
                 return ret;
             }.property('machine.uptime'),
 
-
             basicInfo: function() {
                 if (!this.machine) return;
 
@@ -246,7 +210,7 @@ define('app/views/machine', ['app/views/page'],
                     this.set('public_ips', [this.machine.public_ips]);
                 }
 
-                if (this.machine.backend.provider != 'docker') {
+                if (this.machine.cloud.provider != 'docker') {
                     if (this.machine.private_ips instanceof Array) {
                         this.set('private_ips', this.machine.private_ips);
                     } else if (typeof this.machine.public_ips == 'string') {
@@ -254,7 +218,7 @@ define('app/views/machine', ['app/views/page'],
                     }
                 }
                 if (this.machine.extra) {
-                    if (this.machine.backend.provider == 'docker') {
+                    if (this.machine.cloud.provider == 'docker') {
                         basicInfo['Image'] = this.machine.extra.image;
                         basicInfo['Status'] = this.machine.extra.status;
                         basicInfo['Command'] = this.machine.extra.command;
@@ -281,9 +245,7 @@ define('app/views/machine', ['app/views/page'],
 
             }.property('machine.public_ips', 'machine.private_ips'),
 
-
             metadata: function() {
-
                 if (!this.machine || !this.machine.extra) return;
 
                 var ret = [];
@@ -300,22 +262,17 @@ define('app/views/machine', ['app/views/page'],
 
 
             //
-            //
             //  Observers
             //
-            //
-
 
             modelObserver: function() {
                 Ember.run.once(this, 'load');
             }.observes('controller.model'),
 
-
             checkedMonitoringObserver: function() {
                 Ember.run.once(this, 'updateMonitoringCollapsible');
-            }.observes('machine', 'Mist.backendsController.checkedMonitoring'),
+            }.observes('machine', 'Mist.cloudsController.checkedMonitoring'),
         });
-
 
         function sortInfo (array) {
             array.sort(function (a, b) {

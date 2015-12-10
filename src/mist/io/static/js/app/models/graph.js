@@ -12,11 +12,8 @@ define('app/models/graph', ['ember'],
 
 
             //
-            //
             //  Properties
             //
-            //
-
 
             id: null,
             view: null,
@@ -26,17 +23,25 @@ define('app/models/graph', ['ember'],
 
 
             //
-            //
             //  Computed Properties
             //
-            //
 
+            batches: function (){
+                var i, j=0, l=this.datasources.length, temparray, chunk = DATASOURCES_PER_GRAPH, ret = [];
+                if (!l)
+                    return ret;
+                for (i=0; i<l; i+=chunk) {
+                    temparray = this.datasources.slice(i,i+chunk);
+                    ret.push({id: this.id + '-' + j++,
+                              body: temparray});
+                }
+                return ret;
+            }.property('datasources'),
 
             unit: function () {
                 return this.datasources && this.datasources.length ?
                     this.datasources[0].metric.unit : '';
             }.property('datasources'),
-
 
             isBuiltIn: function () {
                 return this.datasources && this.datasources.length ?
@@ -44,18 +49,14 @@ define('app/models/graph', ['ember'],
                     : false;
             }.property('datasources'),
 
-
             isMultiline: function () {
                 return !!(this.datasources.length > 1);
-            }.property('datasources.@each'),
+            }.property('datasources.[]'),
 
 
-            //
             //
             // Initialization
             //
-            //
-
 
             load: function () {
                 var dts;
@@ -70,11 +71,8 @@ define('app/models/graph', ['ember'],
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             addDatasource: function (datasource) {
                 Ember.run(this, function () {
@@ -83,7 +81,6 @@ define('app/models/graph', ['ember'],
                 });
             },
 
-
             removeDatasource: function (datasource) {
                 Ember.run(this, function () {
                     this.datasources.removeObject(datasource);
@@ -91,14 +88,26 @@ define('app/models/graph', ['ember'],
                 });
             },
 
-
             getFirstDatapoint: function () {
                 return this.get('displayedData')[this.datasources[0].id][0];
             },
 
             getLastDatapoint: function () {
                 return this.get('displayedData')[this.datasources[0].id][DISPLAYED_DATAPOINTS - 1];
-            }
+            },
+
+            valueText: function(val){
+                if (val == null || !isNaN(this.value))
+                    return val
+                if(val>=1024*1024*1024)
+                    return (val/(1024*1024*1024)).toFixed(2) +'G';
+                if(val>=1024*1024)
+                    return (val/(1024*1024)).toFixed(2) +'M';
+                if(val>=1024)
+                    return (val/1024).toFixed(2) + 'K';
+
+                return val.toFixed(2);
+            },
         });
     }
 );

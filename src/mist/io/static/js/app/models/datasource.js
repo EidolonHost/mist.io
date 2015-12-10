@@ -8,19 +8,11 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
 
         'use strict';
 
-        // Limit the amount of datapoints to
-        // preserve memory (especially on mobile)
-        var MAX_DATAPOINTS = 60;
-
         return Ember.Object.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             id: null,
             metric: null,
@@ -29,11 +21,8 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
 
 
             //
-            //
             //  Initialization
             //
-            //
-
 
             init: function () {
                 this._super();
@@ -52,11 +41,8 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             clear: function () {
                 this.set('datapoints', []);
@@ -75,7 +61,6 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
             },
 
             update: function (datapoints) {
-
                 datapoints.forEach(function (datapoint) {
 
                     var dtp = Datapoint.create(datapoint);
@@ -85,17 +70,18 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
                     var datapointToOverride = this.datapoints.findBy('time', dtp.time);
                     if (datapointToOverride)
                         datapointToOverride.value = dtp.value;
-                    else if (lastTimestamp < dtp.time.getTime())
+                    else if (lastTimestamp < dtp.time.getTime()){
                         this.datapoints.push(dtp);
+                        while (this.datapoints.length > MAX_DATAPOINTS)
+                            this.datapoints.shift();
+                    }
                 }, this);
             },
-
 
             overwrite: function (datapoints) {
                 this.set('datapoints', []);
                 this.update(datapoints);
             },
-
 
             getLastTimestamp: function () {
                 var length = this.datapoints.length;
@@ -103,11 +89,12 @@ define('app/models/datasource', ['app/models/datapoint', 'ember'],
                 return this.datapoints[length - 1].time.getTime();
             },
 
-
             getFirstTimestamp: function () {
                 var length = this.datapoints.length;
                 if (!length) return 0;
-                return this.datapoints[length - MAX_DATAPOINTS].time.getTime();
+                if (this.datapoints[length - MAX_DATAPOINTS])
+                    return this.datapoints[length - MAX_DATAPOINTS].time.getTime();
+                return 0;
             }
         });
     }

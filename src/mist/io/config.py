@@ -23,9 +23,13 @@ except IOError:
 except Exception as exc:
     log.error("Error parsing settings py: %r", exc)
 CORE_URI = settings.get("CORE_URI", "https://mist.io")
+AMQP_URI = settings.get("AMQP_URI", "localhost:5672")
+MEMCACHED_HOST = settings.get("MEMCACHED_HOST", ["127.0.0.1:11211"])
+BROKER_URL = settings.get("BROKER_URL", "amqp://guest:guest@127.0.0.1/")
 SSL_VERIFY = settings.get("SSL_VERIFY", True)
 JS_BUILD = settings.get("JS_BUILD", False)
 CSS_BUILD = settings.get("CSS_BUILD", False)
+LAST_BUILD = settings.get("LAST_BUILD", '')
 JS_LOG_LEVEL = settings.get("JS_LOG_LEVEL", 3)
 PY_LOG_LEVEL = settings.get("PY_LOG_LEVEL", logging.INFO)
 PY_LOG_FORMAT = settings.get("PY_LOG_FORMAT", '%(asctime)s %(levelname)s %(threadName)s %(module)s - %(funcName)s: %(message)s')
@@ -37,7 +41,7 @@ ALLOW_CONNECT_PRIVATE = settings.get('ALLOW_CONNECT_PRIVATE', True)
 
 # celery settings
 CELERY_SETTINGS = {
-    'BROKER_URL': 'amqp://guest:guest@127.0.0.1/',
+    'BROKER_URL': BROKER_URL,
     'CELERY_TASK_SERIALIZER': 'json',
     'CELERYD_LOG_FORMAT': PY_LOG_FORMAT,
     'CELERYD_TASK_LOG_FORMAT': PY_LOG_FORMAT,
@@ -89,7 +93,9 @@ LINODE_DATACENTERS = {
     4: 'Atlanta, GA, USA',
     6: 'Newark, NJ, USA',
     7: 'London, UK',
-    8: 'Tokyo, JP'
+    8: 'Tokyo, JP',
+    9: 'Singapore, SG',
+    10: 'Frankfurt, DE'
 }
 
 SUPPORTED_PROVIDERS_V_2 = [
@@ -156,7 +162,7 @@ SUPPORTED_PROVIDERS_V_2 = [
     },
     # GCE
     {
-        'title': 'Google Compute Engine',
+        'title': 'GCE',
         'provider': Provider.GCE,
         'regions': []
     },
@@ -275,7 +281,7 @@ SUPPORTED_PROVIDERS_V_2 = [
         'provider' : Provider.HOSTVIRTUAL,
         'regions': []
     },
-	# Vultr
+    # Vultr
     {
         'title': 'Vultr',
         'provider' : Provider.VULTR,
@@ -285,6 +291,12 @@ SUPPORTED_PROVIDERS_V_2 = [
     {
         'title': 'VMWare vSphere',
         'provider' : Provider.VSPHERE,
+        'regions': []
+    },
+    # Packet.net
+    {
+        'title': 'Packet.net',
+        'provider' : Provider.PACKET,
         'regions': []
     }
 ]

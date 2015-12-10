@@ -1,21 +1,21 @@
-<span {{bind-attr class="view.collapsedClass"}}>
-    <a class="ui-btn" {{action "toggleCollapse" target="view"}}>
-
+<span class={{view.collapsedClass}}>
+    <a class="ui-btn {{if view.log.error 'error'}}" {{action "toggleCollapse" target=view}}>
         <div class="ui-grid-b">
             <div class="ui-block-a">
+                {{#if view.log.error}}
+                    <div class="icon-warn"></div>
+                {{/if}}
                 <div>
                     {{unbound view.formatedAction}}{{#if view.isIncident}}: {{unbound view.log.condition}}
                     {{/if}}
                 </div>
-                {{#if view.log.error}}
-                    <div class="ui-btn-icon-notext ui-icon-alert error"></div>
-                {{/if}}
             </div>
             <div class="ui-block-b">
-                <div class="tag">{{unbound view.log.type}}</div>
+                <div class="tag tag-{{unbound view.log.type}}">{{unbound view.log.type}}</div>
+                {{#if view.showEmail}}{{unbound view.log.email}}{{/if}}
             </div>
             <div class="ui-block-c">
-                <div class="time">{{view.prettyTime}}</div>
+                <div class="time">{{#if Mist.logsController.prettyTimeReady}}{{view.prettyTime}}{{/if}}</div>
             </div>
         </div>
     </a>
@@ -27,26 +27,36 @@
                 <td>Date</td>
                 <td>{{unbound view.fullPrettyTime}}</td>
             </tr>
-            {{#if view.backendTitle}}
+            {{#if view.cloudTitle}}
             <tr>
-                <td>Backend Title</td>
-                <td>{{view.backendTitle}}</td>
+                <td>Cloud Title</td>
+                <td>{{view.cloudTitle}}</td>
             </tr>
             {{/if}}
             {{#if view.machineLink}}
             <tr>
                 <td>Machine</td>
                 <td>
-                    {{#link-to "machine" view.machineLink}}
+                    {{#link-to "machine" view.machineLink class="machine-log-link ui-shadow"}}
                         {{unbound view.machineLink.name}}
                     {{/link-to}}
                 </td>
-            </td>
+            </tr>
             {{/if}}
-            {{#each view.details}}
+            {{#if view.scriptLink}}
+            <tr>
+                <td>Script</td>
+                <td>
+                    {{#link-to "script" view.scriptLink class="script-log-link ui-shadow"}}
+                        {{unbound view.scriptLink.name}}
+                    {{/link-to}}
+                </td>
+            </tr>
+            {{/if}}
+            {{#each view.details as |row|}}
                 <tr>
-                    <td>{{unbound this.key}}</td>
-                    <td><div>{{unbound this.value}}</div></td>
+                    <td>{{unbound row.key}}</td>
+                    <td><div>{{unbound row.value}}</div></td>
                 </tr>
             {{/each}}
             </tbody>

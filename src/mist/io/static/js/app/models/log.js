@@ -10,19 +10,15 @@ define('app/models/log', ['ember'],
 
         return Ember.Object.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             _id: null,
             email: null,
             time: null,
             action: null,
-            backendId: null,
+            cloudId: null,
             machineId: null,
             mode: null,
 

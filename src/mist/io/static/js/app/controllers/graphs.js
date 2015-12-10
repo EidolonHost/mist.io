@@ -34,18 +34,14 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
             TIME_MAP.HOUR * 24,
         ];
 
-        return Ember.ArrayController.extend(Ember.Evented, {
+        return Ember.Controller.extend(Ember.Evented, {
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             isOpen: null,
-            content: [],
+            model: [],
             resizeLock: null,
             pendingRequests: [],
             fetchingStats: null,
@@ -65,11 +61,8 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
             //
-            //
             //  Initialization
             //
-            //
-
 
             init: function () {
                 this._super();
@@ -80,19 +73,14 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             open: function (args) {
-
                 this._clear();
-
                 this.setProperties({
                     'isOpen': true,
-                    'content': args.graphs,
+                    'model': args.graphs,
                 });
 
                 forIn(this, args.config, function (value, property) {
@@ -105,22 +93,16 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
                 if (args.config.timeWindow)
                     this.resolution.change(args.config.timeWindow, true);
-
-                $(window).on('resize', this._handleWindowResize);
             },
-
 
             close: function () {
                 this.stream.stop();
                 this._clear();
-                $(window).off('resize', this._handleWindowResize);
             },
-
 
             getGraph: function(id) {
-                return this.content.findBy('id', id);
+                return this.model.findBy('id', id);
             },
-
 
             graphExists: function (id) {
                 return !!this.getGraph(id);
@@ -128,16 +110,13 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
             //
-            //
             //  Pseudo-Private Methods
             //
-            //
-
 
             _clear: function () {
                 this.setProperties({
                     'isOpen': false,
-                    'content': [],
+                    'model': [],
                 });
                 this.get('config').setProperties({
                     canModify: true,
@@ -151,9 +130,7 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 this._clearPendingRequests();
             },
 
-
             _fetchStats: function (args) {
-
                 if (!this.get('isOpen')) return;
 
                 this._clearPendingRequests();
@@ -172,18 +149,15 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 }, this);
             },
 
-
             _clearPendingRequests: function () {
                 this.set('pendingRequests', []);
                 this.set('fetchingStats', false);
             },
 
-
             _generateRequests: function (args) {
-
                 var requests = [];
                 var offset = this.config.measurementOffset;
-                this.get('content').forEach(function (graph) {
+                this.get('model').forEach(function (graph) {
                     graph.datasources.forEach(function (datasource) {
                         var newRequest = StatsRequest.create({
                             from: args.from - offset,
@@ -206,7 +180,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 return requests;
             },
 
-
             _fetchStatsFromXHR: function (request) {
                 $.ajax({
                     type: 'GET',
@@ -216,24 +189,21 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 });
             },
 
-
             _fetchStatsFromSocket: function (request) {
                 var data = this._generatePayload(request);
                 var machine = request.datasources[0].machine;
-                Mist.socket.emit('stats',
-                    machine.backend.id,
+                Mist.main.emit('stats',
+                    machine.cloud.id,
                     machine.id,
                     data.start,
                     data.stop,
                     data.step,
                     request.id,
-                    request.metrics
+                    request.metrics // cloud will ignore this
                 );
             },
 
-
             _generatePayload: function (request) {
-
                 var payload = {
                     request_id: request.id,
                     start: parseInt(request.from / 1000) - 50,
@@ -251,7 +221,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 return payload
             },
 
-
             _handleXHRResponse: function (jqXHR) {
                 var that = Mist.graphsController;
                 if (jqXHR.status == 200) {
@@ -266,7 +235,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                     }, that.config.measurementStep / 2);
                 }
             },
-
 
             _handleSocketResponse: function (data) {
                 var that = Mist.graphsController;
@@ -283,24 +251,20 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 that.trigger('onFetchStatsFromSocket', data);
             },
 
-
             _handleResponse: function (request, response,r) {
-
                 if (DEBUG_STATS) {
-                    info('Stats response: ', request, r);
+                    info('Stats response from', new Date(request.from), ' until ', new Date(request.until), r);
                 }
                 request.datasources.forEach(function (datasource) {
-
                     if (!response[datasource.metric.id]) return;
 
                     var datapoints = this._processedDatapoints(request,
                         response[datasource.metric.id].datapoints);
 
-                    if (this.stream.isStreaming)
+                    if (this.stream.isStreaming && !this.stream.newTimeWindow)
                         datasource.update(datapoints);
                     else
                         datasource.overwrite(datapoints);
-
                 }, this);
 
                 var hadRequests = this.pendingRequests.length;
@@ -309,7 +273,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 if (!this.pendingRequests.length && hadRequests)
                     this._fetchStatsEnded(response);
             },
-
 
             _processedDatapoints: function (request, datapoints) {
                 var newDatapoints = [];
@@ -321,28 +284,28 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                 return newDatapoints;
             },
 
-
             _fetchStatsEnded: function (response) {
+                var that=this;
                 Ember.run.next(this, function () {
-                    this.get('content').forEach(function (graph) {
-                        graph.view.draw();
+                    this.get('model').forEach(function (graph) {
+                        graph.view.draw(that.stream.isStreaming && that.stream.newTimeWindow);
                     });
                     this.set('fetchingStats', false);
                     if (this.fetchStatsArgs.callback instanceof Function)
                         this.fetchStatsArgs.callback();
                     this.trigger('onFetchStats', response);
+                    that.stream.set('newTimeWindow', null);
                 });
+
             },
 
-
             _restoreFetchStatsArgs: function () {
-
                 // Restores fetch stats args to match currently
                 // displayed datapoints. Used after closing a streaming
                 // session.
 
-                if (!this.get('content').length) return;
-                var datasource = this.get('content')[0].datasources[0];
+                if (!this.get('model').length) return;
+                var datasource = this.get('model')[0].datasources[0];
 
                 this.set('fetchStatsArgs', {
                     from: datasource.getFirstTimestamp() || (Date.now() - this.config.timeWindow),
@@ -351,48 +314,24 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
             },
 
 
-            _handleWindowResize: function () {
-
-                var that = Mist.graphsController;
-                clearTimeout(that.resizeLock);
-                that.set('resizeLock', setTimeout(resize, 500));
-                function resize () {
-                    that.content.forEach(function (graph) {
-                        graph.view.autoResize();
-                    });
-                }
-            },
-
-
-            //
             //
             //  Resolution Object
             //
-            //
-
 
             resolution: Ember.Object.create({
 
-
-                //
                 //
                 //  Properties
                 //
-                //
-
 
                 parent: null,
 
 
                 //
-                //
                 //  Methods
                 //
-                //
-
 
                 change: function (newTimeWindow) {
-
                     var newTimeWindow = TIME_WINDOW_MAP[newTimeWindow];
                     var oldTimeWindow = this.parent.config.timeWindow;
 
@@ -402,37 +341,28 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                         measurementStep: newTimeWindow /
                             DISPLAYED_DATAPOINTS,
                     });
+                    this.parent.stream.set('newTimeWindow', true);
                     this.parent.stream.start();
                 }
             }),
 
 
             //
-            //
             //  History Object
             //
-            //
-
 
             history: Ember.Object.create({
 
-
-                //
                 //
                 //  Properties
                 //
-                //
-
 
                 parent: null,
 
 
                 //
-                //
                 //  Methods
                 //
-                //
-
 
                 change: function (args) {
                     this.parent._clearPendingRequests();
@@ -450,7 +380,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                     });
                 },
 
-
                 goBack: function () {
                     this.parent._clearPendingRequests();
                     this.parent.stream.stop();
@@ -461,27 +390,25 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                     });
                 },
 
-
                 goForward: function () {
-
                     this.parent._clearPendingRequests();
 
                     var timeWindow = this.parent.config.timeWindow;
                     var from = this.parent.fetchStatsArgs.until;
                     var until = from + timeWindow;
 
-                    if (new Date(until).isFuture())
+                    if (new Date(until).isFuture()){
                         this.parent._fetchStats({
                             from: Date.now() - timeWindow,
                             until: Date.now(),
                         });
-                    else
+                        this.parent.stream.start();
+                    } else
                         this.parent._fetchStats({
                             from: from,
                             until: until
                         });
                 },
-
 
                 _sanitizeStep: function (step) {
                     var newStep = 0;
@@ -497,21 +424,14 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
             //
-            //
             //  Streaming Object
             //
-            //
-
 
             stream: Ember.Object.create({
 
-
-                //
                 //
                 //  Properties
                 //
-                //
-
 
                 parent: null,
                 isStreaming: null,
@@ -521,11 +441,8 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
                 //
-                //
                 //  Methods
                 //
-                //
-
 
                 start: function () {
                     if (!this.isStreaming) {
@@ -534,7 +451,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                         this._stream(this.currentSessionId, true);
                     }
                 },
-
 
                 stop: function () {
                     if (this.isStreaming) {
@@ -550,15 +466,15 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
 
 
                 //
-                //
                 //  Pseudo-Private Methods
                 //
-                //
-
 
                 _stream: function (sessionId, firstTime) {
+                    if (!this._sessionIsAlive(sessionId))
+                        return false;
 
-                    if (this._sessionIsAlive(sessionId)) {
+                    var that = this;
+                    if (document.hidden == false) {
 
                         var now = Date.now();
 
@@ -580,9 +496,16 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                         if (firstTime)
                             this.set('firstStreamingCall', true);
                         this.set('timeOfLastRequest', now);
+                    } else {
+                        // Do not stream when not visible, resume on focus
+                        $(window).on("focus visibilitychange", function(){
+                            $(window).off("focus visibilitychange");
+                            Ember.run.next(function(){
+                                that._stream(sessionId);
+                            });
+                        });
                     }
 
-                    var that = this;
                     function callback () {
                         that.set('firstStreamingCall', false);
                         Ember.run.later(function () {
@@ -591,9 +514,7 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                     }
                 },
 
-
                 _getNextRequestDelay: function () {
-
                     // Client should make new stats requests every
                     // <measurementStep> milliseconds.
                     //
@@ -604,7 +525,6 @@ define('app/controllers/graphs', ['app/models/stats_request', 'ember'],
                     return this.parent.config.measurementStep -
                         (Date.now() - this.timeOfLastRequest);
                 },
-
 
                 _sessionIsAlive: function (sessionId) {
                     return this.currentSessionId == sessionId;

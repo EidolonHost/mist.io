@@ -10,48 +10,46 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
 
         return App.HomeView = PageView.extend({
 
+            //
+            //  Properties
+            //
+
+            templateName: 'home',
 
             hasIncidents: function () {
                 if (Mist.openIncidents)
                     return !!Mist.openIncidents.length;
             }.property('Mist.openIncidents'),
 
+            machineCount: function () {
+                return Mist.cloudsController.machineCount;
+            }.property('Mist.cloudsController.machineCount'),
 
-            //
             //
             //  Initialization
             //
-            //
-
 
             load: function () {
                 Ember.run.next(this, function () {
                     this.checkedMonitoringObserver();
                 });
-                Mist.backendsController.on('onMachineListChange', this,
+                Mist.cloudsController.on('onMachineListChange', this,
                     'checkedMonitoringObserver');
             }.on('didInsertElement'),
 
 
             unload: function () {
                 Mist.graphsController.close();
-                Mist.backendsController.off('onMachineListChange', this,
+                Mist.cloudsController.off('onMachineListChange', this,
                     'checkedMonitoringObserver');
             }.on('willDestroyElement'),
 
 
             //
-            //
             //  Actions
             //
-            //
-
 
             actions: {
-
-                addBackend: function () {
-                    Mist.backendAddController.open();
-                },
 
                 incidentClicked: function (incident) {
                     var machine = incident.get('machine');
@@ -59,18 +57,15 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
                         Mist.notificationController.timeNotify(
                             'Machine not found', 2000);
                     else
-                        Mist.Router.router.transitionTo('machine',
+                        Mist.__container__.lookup('router:main').transitionTo('machine',
                             incident.get('machine'));
                 }
             },
 
 
             //
-            //
             //  Methods
             //
-            //
-
 
             showGraphs: function () {
 
@@ -80,10 +75,10 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
                 var datasources = [];
                 var loadMetric = Mist.metricsController.getMetric('load.shortterm');
                 Mist.monitored_machines.forEach(function (machineTuple) {
-                    var backend = Mist.backendsController.getBackend(machineTuple[0]);
-                    if (!backend || !backend.get('enabled'))
+                    var cloud = Mist.cloudsController.getCloud(machineTuple[0]);
+                    if (!cloud || !cloud.get('enabled'))
                         return
-                    var machine = Mist.backendsController.getMachine(machineTuple[1], machineTuple[0]);
+                    var machine = Mist.cloudsController.getMachine(machineTuple[1], machineTuple[0]);
                     if (!machine || machine.get('isWindows')) return;
                     Mist.datasourcesController.addDatasource({
                         machine: machine,
@@ -96,7 +91,7 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
 
                 if (Mist.graphsController.isOpen) {
                     var listChanged = false;
-                    var existingDatasources = Mist.graphsController.content[0].datasources;
+                    var existingDatasources = Mist.graphsController.model[0].datasources;
                     datasources.some(function (datasource) {
                         var exists = existingDatasources.findBy('id', datasource.id);
                         if (!exists) {
@@ -118,6 +113,7 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
                     graphs: [Graph.create({
                         title: 'Load on all monitored machines',
                         datasources: datasources,
+                        multi: true
                     })],
                     config: {
                         canModify: false,
@@ -130,18 +126,15 @@ define('app/views/home', ['app/views/page', 'app/models/graph'],
 
 
             //
-            //
             //  Observers
             //
-            //
-
 
             checkedMonitoringObserver: function () {
                 Ember.run.later(this, function () {
-                    if (this.$() && Mist.backendsController.checkedMonitoring)
+                    if (this.$() && Mist.cloudsController.checkedMonitoring)
                         this.showGraphs();
                 }, 500); // to make sure datasources exist
-            }.observes('Mist.backendsController.checkedMonitoring')
+            }.observes('Mist.cloudsController.checkedMonitoring')
         });
     }
 );

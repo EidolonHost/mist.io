@@ -10,6 +10,8 @@ define('app/views/image_list', ['app/views/page'],
 
         return App.ImageListView = PageView.extend({
 
+            templateName: 'image_list',
+            controllerName: 'imagesController',
 
             //
             //
@@ -22,6 +24,7 @@ define('app/views/image_list', ['app/views/page'],
             defaultImages: [],
             renderedImages: [],
             renderingMoreImages: null,
+            pageYOffset: 0,
 
 
             //
@@ -35,17 +38,18 @@ define('app/views/image_list', ['app/views/page'],
 
                 // Add event listeners
                 Mist.imageSearchController.on('onSearchEnd', this, 'updateBaseImages');
-                Mist.backendsController.on('onImagesChange', this, 'updateDefaultImages');
+                Mist.cloudsController.on('onImagesChange', this, 'updateDefaultImages');
 
-                // Handle scrolling
                 var that = this;
-                Ember.run.later(function () {
+                Ember.run.later(this, function () {
+                    if (!this.isDestroyed)
+                        Mist.cloudsController.trigger('onImagesChange');
+
+                    // Handle scrolling
                     $(window).on('scroll', function (e) {
                         that.set('pageYOffset', window.pageYOffset);
                     });
-                }, 500);
-
-                this.updateDefaultImages();
+                }, 200);
 
             }.on('didInsertElement'),
 
@@ -54,8 +58,8 @@ define('app/views/image_list', ['app/views/page'],
 
                 // Remove event listeners
                 var that = this;
-                Mist.backendsController.content.forEach(function(backend) {
-                    backend.off('onImagesChange', that, 'updateBaseImages');
+                Mist.cloudsController.model.forEach(function(cloud) {
+                    cloud.off('onImagesChange', that, 'updateBaseImages');
                 });
                 Mist.imageSearchController.off('onSearchEnd', this, 'updateBaseImages');
                 $(window).off('scroll');
@@ -88,8 +92,8 @@ define('app/views/image_list', ['app/views/page'],
 
             updateDefaultImages: function () {
                 var newImages = [];
-                Mist.backendsController.content.forEach(function (backend) {
-                    backend.images.content.forEach(function (image) {
+                Mist.cloudsController.model.forEach(function (cloud) {
+                    cloud.images.model.forEach(function (image) {
                         if (image.star)
                             newImages.unshift(image);
                         else
@@ -97,8 +101,10 @@ define('app/views/image_list', ['app/views/page'],
                     });
                 });
                 Mist.imageSearchController.set('images', newImages);
-                this.set('defaultImages', newImages);
-                this.updateBaseImages();
+                if (!this.isDestroyed){
+                    this.set('defaultImages', newImages);
+                    this.updateBaseImages();
+                }
             },
 
 
@@ -138,6 +144,10 @@ define('app/views/image_list', ['app/views/page'],
 
                 searchClicked: function () {
                     Mist.imageSearchController.search(true);
+                },
+
+                clearClicked: function() {
+                    Mist.imageSearchController.clearSearch();
                 }
             },
 

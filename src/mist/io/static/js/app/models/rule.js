@@ -10,13 +10,9 @@ define('app/models/rule', ['app/models/base'],
 
         return BaseModel.extend({
 
-
-            //
             //
             //  Properties
             //
-            //
-
 
             unit: null,
             value: null,
@@ -46,18 +42,15 @@ define('app/models/rule', ['app/models/base'],
                     return Mist.rulesController.getAggregateByValue(aggregate);
                 },
                 machine: function (machine) {
-                    return Mist.backendsController.getMachine(
-                        machine, this.get('backend')) || machine;
+                    return Mist.cloudsController.getMachine(
+                        machine, this.get('cloud')) || machine;
                 },
             },
 
 
             //
-            //
             //  Computed Properties
             //
-            //
-
 
             timeWindowToMins: function () {
                 return (1 + parseInt(this.get('timeWindow') / 60)).toString();

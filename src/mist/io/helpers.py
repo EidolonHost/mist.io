@@ -76,6 +76,10 @@ def user_from_request(request):
     return User()
 
 
+def user_from_session_id(session_id):
+    return User()
+
+
 def user_from_email(email):
     return User()
 
@@ -133,7 +137,7 @@ def parse_ping(stdout):
         rtt_avg = float(match.groups()[1])
         rtt_max = float(match.groups()[2])
         return {
-            ## "host": host,
+            # "host": host,
             "packets_tx": packets_tx,
             "packets_rx": packets_rx,
             "packets_loss": packets_loss,
@@ -148,7 +152,7 @@ def parse_ping(stdout):
 
 def amqp_publish(exchange, routing_key, data,
                  ex_type='fanout', ex_declare=False):
-    connection = Connection()
+    connection = Connection(config.AMQP_URI)
     channel = connection.channel()
     if ex_declare:
         channel.exchange_declare(exchange=exchange, type=ex_type)
@@ -170,9 +174,9 @@ def amqp_subscribe(exchange, callback, queue='',
             return func(msg)
         return wrapped
 
-    connection = Connection()
+    connection = Connection(config.AMQP_URI)
     channel = connection.channel()
-    channel.exchange_declare(exchange=exchange, type=ex_type)
+    channel.exchange_declare(exchange=exchange, type=ex_type, auto_delete=true)
     resp = channel.queue_declare(queue, exclusive=True)
     if not routing_keys:
         channel.queue_bind(resp.queue, exchange)
@@ -218,7 +222,7 @@ def amqp_subscribe_user(user, queue, callback):
 
 
 def amqp_user_listening(user):
-    connection = Connection()
+    connection = Connection(config.AMQP_URI)
     channel = connection.channel()
     try:
         channel.exchange_declare(exchange=_amqp_user_exchange(user),
@@ -232,7 +236,7 @@ def amqp_user_listening(user):
         connection.close()
 
 
-def trigger_session_update(email, sections=['backends','keys','monitoring']):
+def trigger_session_update(email, sections=['clouds', 'keys', 'monitoring']):
     amqp_publish_user(email, routing_key='update', data=sections)
 
 
@@ -246,7 +250,7 @@ def amqp_log(msg):
 
 def amqp_log_listen():
     def echo(msg):
-        ## print msg.delivery_info.get('routing_key')
+        # print msg.delivery_info.get('routing_key')
         print msg.body
 
     amqp_subscribe('mist_debug', echo)
@@ -303,12 +307,26 @@ class StdStreamCapture(object):
         return self.get_mux()
 
 
+def sanitize_host(host):
+    "Return the hostame or ip address out of a URL"
+
+    for prefix in ['https://', 'http://']:
+        host = host.replace(prefix, '')
+
+    host = host.split('/')[0]
+    host = host.split(':')[0]
+
+    return host
+
+
 def check_host(host, allow_localhost=config.ALLOW_CONNECT_LOCALHOST,
                allow_private=config.ALLOW_CONNECT_PRIVATE):
     """Check if a given host is a valid DNS name or IPv4 address"""
 
     try:
         ipaddr = socket.gethostbyname(host)
+    except UnicodeEncodeError:
+        raise MistError('Please provide a valid DNS name')
     except socket.gaierror:
         raise MistError("Not a valid IP address or resolvable DNS name: '%s'."
                         % host)

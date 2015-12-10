@@ -38,7 +38,6 @@ define('app/controllers/metric_add', ['app/models/metric', 'ember'],
                 this.clear();
                 this.set('machine', machine)
                     .set('callback', callback);
-
                 this.view.open();
                 this.loadMetrics();
             },
@@ -67,7 +66,7 @@ define('app/controllers/metric_add', ['app/models/metric', 'ember'],
 
             loadMetrics: function () {
 
-                var url = '/backends/' + this.machine.backend.id +
+                var url = '/clouds/' + this.machine.cloud.id +
                           '/machines/' + this.machine.id + '/metrics';
 
                 var that = this;
