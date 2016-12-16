@@ -51,59 +51,68 @@
         </div>
 
         <!-- Select Image -->
-        <div id="create-machine-image" class="required {{if Mist.machineAddController.selectedImage 'preset' ''}} {{if Mist.machineAddController.newMachineProvider.provider '' 'ui-state-disabled'}} {{if Mist.machineAddController.newMachineImage.id 'filled' 'empty'}}">
-            <label>Image</label>
-            <div data-role="collapsible"
-                 data-iconpos="right"
-                 data-collapsed-icon="carat-d"
-                 data-expanded-icon="carat-u"
-
-                 class="mist-select">
-                <h4>
-                    {{#if Mist.machineAddController.newMachineImage.id}}
-                        <span class="image-icon-small">
-                            <span class={{Mist.machineAddController.newMachineImage.className}}>
-                            </span>
-                        </span>
-                    {{/if}}
-                    {{Mist.machineAddController.newMachineImage.name}}
-                </h4>
-
-                {{#unless Mist.machineAddController.selectedImage}}
-                <ul data-role="listview" >
-                    {{#each Mist.machineAddController.newMachineProvider.images.model as |image|}}
-                        {{#unless Mist.machineAddController.newMachineProvider.images.hasStarred}}
-                            <li data-icon="false">
-                                <span class="image-icon-small">
-                                    <span class={{image.className}}></span>
+        <div id="create-machine-image" class="field-wrapper required {{if Mist.machineAddController.selectedImage 'preset' ''}} {{if Mist.machineAddController.newMachineProvider.provider '' 'ui-state-disabled'}} {{if Mist.machineAddController.newMachineImage.id 'filled' 'empty'}}">
+            <div class="first-child {{if view.hasLibvirt '' 'last-child'}}">
+                <label>Image</label>
+                <div data-role="collapsible"
+                     data-iconpos="right"
+                     data-collapsed-icon="carat-d"
+                     data-expanded-icon="carat-u"
+                     class="mist-select">
+                    <h4>
+                        {{#if Mist.machineAddController.newMachineImage.id}}
+                            <span class="image-icon-small">
+                                <span class={{Mist.machineAddController.newMachineImage.className}}>
                                 </span>
-                                <a {{action "selectImage" image target=view}} title="{{image.name}}">{{image.name}}</a>
-                            </li>
-                        {{else}} {{#if image.star}}
-                            <li data-icon="false">
-                                <a {{action "selectImage" image target=view}} title="{{image.name}}">
+                            </span>
+                        {{/if}}
+                        {{Mist.machineAddController.newMachineImage.name}}
+                    </h4>
+
+                    {{#unless Mist.machineAddController.selectedImage}}
+                    <ul data-role="listview" >
+                        {{#each Mist.machineAddController.newMachineProvider.images.model as |image|}}
+                            {{#unless Mist.machineAddController.newMachineProvider.images.hasStarred}}
+                                <li data-icon="false">
                                     <span class="image-icon-small">
                                         <span class={{image.className}}></span>
                                     </span>
-                                    {{image.name}}
+                                    <a {{action "selectImage" image target=view}} title="{{image.name}}">{{image.name}}</a>
+                                </li>
+                            {{else}} {{#if image.star}}
+                                <li data-icon="false">
+                                    <a {{action "selectImage" image target=view}} title="{{image.name}}">
+                                        <span class="image-icon-small">
+                                            <span class={{image.className}}></span>
+                                        </span>
+                                        {{image.name}}
+                                    </a>
+                                </li>
+                            {{/if}} {{/unless}}
+                        {{/each}}
+                        {{#if view.hasLibvirt}}
+                            <li data-icon="false" data-theme="d">
+                                <a {{action "createLibvirtImage" target=view}}>
+                                    {{#if Mist.machineAddController.newMachineLibvirtImagePath}}
+                                        {{Mist.machineAddController.newMachineLibvirtImagePath}}
+                                    {{else}}
+                                        Create Image
+                                    {{/if}}
                                 </a>
                             </li>
-                        {{/if}} {{/unless}}
-                    {{/each}}
-                    {{#if view.hasLibvirt}}
-                        <li data-icon="false" data-theme="d">
-                            <a {{action "createLibvirtImage" target=view}}>
-                                {{#if Mist.machineAddController.newMachineLibvirtImagePath}}
-                                    {{Mist.machineAddController.newMachineLibvirtImagePath}}
-                                {{else}}
-                                    Create Image
-                                {{/if}}
-                            </a>
-                        </li>
-                    {{/if}}
-                </ul>
-                {{/unless}}
+                        {{/if}}
+                    </ul>
+                    {{/unless}}
+                </div>
             </div>
+            {{#if view.hasLibvirt}}
+            <div class="last-child">
+                <a class="ui-btn ui-btn-a ui-btn-icon-notext ui-icon-question"
+                    id="create-machine-image-helper"
+                    {{action "helpClicked" "image" target=view}}>
+                </a>
+            </div>
+            {{/if}}
         </div>
 
         <div id="size">
@@ -114,12 +123,11 @@
                      data-iconpos="right"
                      data-collapsed-icon="carat-d"
                      data-expanded-icon="carat-u"
-
                      class="mist-select">
                     <h4>{{Mist.machineAddController.newMachineSize.name}}</h4>
 
                     <ul data-role="listview" >
-                        {{#each Mist.machineAddController.newMachineProvider.sizes.model as |size|}}
+                        {{#each Mist.machineAddController.newMachineSizesOptions as |size|}}
                         <li data-icon="false">
                             <a {{action "selectSize" size target=view}} title="{{size.name}} - disk:{{size.disk}}, ram:{{size.ram}}">{{size.name}}
                                 <span class="size-decription">
@@ -135,36 +143,37 @@
 
         <!-- Libvirt Specific -->
         {{#if view.hasLibvirt}}
-        <label for="create-machine-libvirt-disk-type">Disk</label>
-        <div id="create-machine-libvirt-disk-type">
-            <select class="toggle-field" data-theme="a" data-role="slider"
-            {{action "switchLibvirtDiskType" field on="change" target="view"}}>
-                <option value="0">New</option>
-                <option value="1">Existing</option>
-            </select>
-        </div>
-
-            {{#if view.hasLibvirtDiskNew}}
+        <div class="field-wrapper">
+            <div class="first-child">
                 <label for="create-machine-disk-path">Path to create VM's disk</label>
                 {{view Mist.TextField
-                       id="create-machine-disk-path"
-                       data-theme="a"
-                       value=Mist.machineAddController.newMachineLibvirtDiskPath}}
+                   id="create-machine-disk-path"
+                   data-theme="a"
+                   value=Mist.machineAddController.newMachineLibvirtDiskPath}}
+            </div>
+            <div class="last-child">
+                <a class="ui-btn ui-btn-a ui-btn-icon-notext ui-icon-question"
+                    id="create-machine-disk-path-helper"
+                    {{action "helpClicked" "disk-path" target=view}}>
+                </a>
+            </div>
+        </div>
 
-                {{#if view.hasLibvirtDiskSize}}
+        <div class="field-wrapper">
+            <div class="first-child">
                 <label for="create-machine-disk-size">Disk Size (GB)</label>
                 {{view Mist.TextField
-                       id="create-machine-disk-size"
-                       data-theme="a"
-                       value=Mist.machineAddController.newMachineLibvirtDiskSize}}
-                {{/if}}
-            {{else}}
-                <label for="create-machine-libvirt-existing-disk-path">Specify existing disk image path</label>
-                {{view Mist.TextField
-                       id="create-machine-libvirt-existing-disk-path"
-                       data-theme="a"
-                       value=Mist.machineAddController.newMachineLibvirtExistingDiskPath}}
-            {{/if}}
+                   id="create-machine-disk-size"
+                   data-theme="a"
+                   value=Mist.machineAddController.newMachineLibvirtDiskSize}}
+            </div>
+            <div class="last-child">
+                <a class="ui-btn ui-btn-a ui-btn-icon-notext ui-icon-question"
+                    id="create-machine-disk-size-helper"
+                    {{action "helpClicked" "disk-size" target=view}}>
+                </a>
+            </div>
+        </div>
         {{/if}}
 
         <!-- Select Location -->
@@ -193,15 +202,14 @@
 
         <!-- Select Key -->
         {{#if view.hasKey}}
-        <div id="key" class="{{if Mist.machineAddController.newMachineProvider.provider '' 'ui-state-disabled'}} {{if Mist.machineAddController.newMachineKey.id 'filled' 'empty'}} {{if view.hasKey 'required'}}">
-            <div id="create-machine-key" >
+        <div id="key" class="field-wrapper {{if Mist.machineAddController.newMachineProvider.provider '' 'ui-state-disabled'}} {{if Mist.machineAddController.newMachineKey.id 'filled' 'empty'}} {{if view.needsKey 'required'}}">
+            <div id="create-machine-key" class="first-child {{if view.hasLibvirt '' 'last-child'}}">
                 <label>Key</label>
                 <div
                      data-role="collapsible"
                      data-iconpos="right"
                      data-collapsed-icon="carat-d"
                      data-expanded-icon="carat-u"
-
                      class="mist-select">
                     <h4>
                         {{#if Mist.machineAddController.newMachineKey.id}}
@@ -223,6 +231,14 @@
                     </ul>
                 </div>
             </div>
+            {{#if view.hasLibvirt}}
+            <div class="last-child">
+                <a class="ui-btn ui-btn-a ui-btn-icon-notext ui-icon-question"
+                    id="create-machine-key-helper"
+                    {{action "helpClicked" "key" target=view}}>
+                </a>
+            </div>
+            {{/if}}
         </div>
         {{/if}}
 
@@ -235,7 +251,6 @@
                      data-iconpos="right"
                      data-collapsed-icon="carat-d"
                      data-expanded-icon="carat-u"
-
                      class="mist-select">
                     <h4>
                         {{#if Mist.machineAddController.newMachineProject.name}}
@@ -259,6 +274,7 @@
 
         <!-- Docker Specific -->
         {{#if view.hasDocker}}
+        {{#if view.dockerOptionalCommand}}
         <div class="docker">
 
             <!-- Environment Vars -->
@@ -269,17 +285,16 @@
                        value=Mist.machineAddController.newMachineDockerEnvironment}}
             </div>
 
-            {{#unless view.dockerNeedScript}}
             <!-- Command -->
-            <div id="create-machine-command" class="required {{if Mist.machineAddController.newMachineDockerCommand 'filled' 'empty'}}">
+            <div id="create-machine-command" class="{{if Mist.machineAddController.newMachineDockerCommand 'filled' 'empty'}}">
                 <label for="create-machine-command">Command</label>
                 {{view Mist.TextArea
                        id="create-machine-command"
                        value=Mist.machineAddController.newMachineDockerCommand}}
             </div>
-            {{/unless}}
 
         </div>
+        {{/if}}
         {{/if}}
 
         <!-- Select Networks -->
@@ -428,6 +443,35 @@
 
 <div id="create-machine-overlay" class="ui-popup-screen ui-overlay-b ui-screen-hidden"
      {{action "clickOverlay" target=view}}></div>
+
+<div id="help-tooltip-screen"
+        class="ui-popup-screen
+            ui-overlay-b
+            ui-screen-hidden">
+    </div>
+    <div id="help-tooltip-popup"
+         class="pop
+            ui-popup-container
+            ui-popup-hidden
+            ui-popup-truncate">
+        <div id="help-tooltip"
+             class="ui-popup
+                ui-body-a
+                ui-overlay-shadow
+                ui-corner-all"
+             data-role="popup"
+             data-arrow="true"
+             data-enhanced="true"
+             data-transition="flip">
+            <p>{{view.helpText}}
+                {{#if view.helpHref}}
+                <a target="_blank" href={{view.helpHref}}>
+                    Read more...
+                </a>
+                {{/if}}
+            </p>
+        </div>
+    </div>
 
 {{component "key-add"}}
 
